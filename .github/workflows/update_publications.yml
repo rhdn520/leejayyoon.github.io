@@ -1,0 +1,42 @@
+name: Update Publications
+
+on:
+  schedule:
+    # Runs twice a day at 00:00 and 12:00 UTC (09:00 and 21:00 KST)
+    - cron: '0 0,12 * * *'
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  update-publications:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Scrape SKI-ML and update publication.html
+        run: |
+          python scripts/update_publications.py
+
+      - name: Commit and push if changed
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if ! git diff --quiet publication.html; then
+            echo "Changes detected in publication.html. Committing..."
+            git add publication.html
+            git commit -m "Auto-update publications from skiml.snu.ac.kr [skip ci]"
+            git push
+          else
+            echo "No changes detected in publication.html. Skipping commit."
+          fi
+
