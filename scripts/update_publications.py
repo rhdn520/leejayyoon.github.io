@@ -30,8 +30,14 @@ def fetch_html(url: str) -> str:
         )
     }
     req = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        return resp.read().decode("utf-8")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.read().decode("utf-8")
+    except Exception:
+        import ssl
+        ctx = ssl._create_unverified_context()
+        with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
+            return resp.read().decode("utf-8")
 
 
 def clean_text(text: str) -> str:
@@ -118,6 +124,8 @@ def parse_publications(raw_html: str):
                         label = "poster"
                     elif "code" in raw_lbl_compact:
                         label = "code"
+                    elif "site" in raw_lbl_compact or "project" in raw_lbl_compact:
+                        label = "site"
                     else:
                         label = "paper"
                     links.append({"url": url, "label": label})
@@ -144,7 +152,7 @@ def parse_publications(raw_html: str):
                 title_raw = re.sub(r"<a\b[^>]*>.*?</a>", " ", title_raw)
                 title_clean = clean_text(title_raw)
                 title_clean = re.sub(
-                    r"\[\s*(?:paper|code|poster|p\s*o\s*s\s*t\s*e\s*r|camera ready).*?\]",
+                    r"\[\s*(?:paper|code|poster|site|p\s*o\s*s\s*t\s*e\s*r|camera ready).*?\]",
                     "",
                     title_clean,
                     flags=re.I,
